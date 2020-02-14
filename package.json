@@ -1,0 +1,27 @@
+{
+  "name": "adop",
+  "version": "1.0.0",
+  "description": "All dot-notation object path from multiple items",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/extensionsapp/adop.git"
+  },
+  "keywords": [
+    "object-path",
+    "dot-notation",
+    "parse",
+    "json",
+    "object",
+    "path"
+  ],
+  "author": "extensionsapp",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/extensionsapp/adop/issues"
+  },
+  "homepage": "https://github.com/extensionsapp/adop#readme"
+}
