@@ -145,21 +145,21 @@ module.exports = (json, paths, group, time = false) => {
 
 function parsePath(path) {
     if (typeof path === 'object') {
-        path.path = path.path.toString().trim();
+        let [p, n, t, r] = path.path.split('<>').map(p => p.trim());
         return {
-            path: path.path,
-            name: (path.name || path.path).toString().trim(),
-            type: path.type ? path.type.toString().trim() : '',
-            regex: path.regex ? path.regex : '',
-            pattern: new RegExp('^' + path.path
+            path: p,
+            name: (n || path.name || p || '').toString().trim(),
+            type: (t || path.type || '').toString().trim(),
+            regex: (r || path.regex || ''),
+            pattern: new RegExp('^' + p
                 .replace(/\./g, '\\.')
                 .replace(/\[([0-9]+)]/g, '\\[[0-9]+\\]') + '$')
         };
     }
     let [p, n, t, r] = path.split('<>').map(p => p.trim());
     return {
-        path: p || '',
-        name: n || p || '',
+        path: (p || ''),
+        name: (n || p || ''),
         type: t || '',
         regex: r ? new RegExp(r) : '',
         pattern: new RegExp('^' + p
