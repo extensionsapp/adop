@@ -81,7 +81,7 @@ let obj = [
         type: 'number'
     }, {
         name: 'season',
-        path: 'results[0].seasons[0].season',
+        path: 'results[0].seasons.0.season',
     }, {
         name: 'episode',
         path: 'results[0].seasons[0].episodes[0].SxEx',
@@ -89,15 +89,15 @@ let obj = [
         regex: /S[0-9]{1,3}E([0-9]{1,3})/
     }, {
         name: 'series',
-        path: 'results[0].seasons[0].series[0]',
+        path: 'results.0.seasons[0].series[0]',
         type: 'string'
     }
 ];
 
 let str = '' +
     'results[0].id ~' +
-    'results[0].seasons[0].season <> season ~' +
-    'results[0].seasons[0].episodes[0].SxEx' +
+    'results.0.seasons.0.season <> season ~' +
+    'results[0].seasons[0].episodes.0.SxEx' +
     '<> episode ' +
     '<> number ' +
     '<> S[0-9]{1,3}E([0-9]{1,3})';

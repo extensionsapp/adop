@@ -146,6 +146,10 @@ module.exports = (json, paths, group, time = false) => {
 function parsePath(path) {
     if (typeof path === 'object') {
         let [p, n, t, r] = path.path.split('<>').map(p => p.trim());
+        p = p
+            .replace(/^([0-9]*)\./g, '[$1].')
+            .replace(/\.([0-9]*)$/g, '[$1]')
+            .replace(/\.([0-9]*)\./g, '[$1].');
         return {
             path: p,
             name: (n || path.name || p || '').toString().trim(),
@@ -157,6 +161,10 @@ function parsePath(path) {
         };
     }
     let [p, n, t, r] = path.split('<>').map(p => p.trim());
+    p = p
+        .replace(/^([0-9]*)\./g, '[$1].')
+        .replace(/\.([0-9]*)$/g, '[$1]')
+        .replace(/\.([0-9]*)\./g, '[$1].');
     return {
         path: (p || ''),
         name: (n || p || ''),
