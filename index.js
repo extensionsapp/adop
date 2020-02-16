@@ -1,140 +1,185 @@
 const dot = require('./dot');
 
-module.exports = (json, paths) => {
+module.exports = (json, paths, group, time = false) => {
     let result = [];
+
     if (typeof json !== 'object' || typeof paths === 'undefined') {
         return result;
     }
-    if (typeof paths !== 'object') {
-        paths = [paths.toString()];
+
+    if (typeof paths === 'string') {
+        paths = paths.split('~').map(p => p.trim()).filter(Boolean);
     }
-    paths = paths.map(p => parsePath(p));
 
-    /*
-    Get array object all dot-notation params.
-     */
+    if (typeof paths !== 'object') {
+        return result;
+    }
 
-    const list = dot.convert(json);
+    if (time) console.time('TIME');
 
-    /*
-    Create array {path, name}
-     */
+    const dots = dot.convert(json);
+    const keys = Object.keys(dots);
 
-    let keys = Object.keys(list).map(path => {
-        let format = false;
-        for (let i = 0; i < paths.length; i++) {
-            let {name, pattern} = paths[i];
+    paths = paths.map(p => parsePath(p))
+        .sort((a,b) =>
+            (a.path.split(/\[[0-9]]/).length > b.path.split(/\[[0-9]]/).length)
+                ? 1
+                : ((b.path.split(/\[[0-9]]/).length > a.path.split(/\[[0-9]]/).length)
+                ? -1
+                : 0))
+        .reverse()
+        .map((p, i) => ({...p, main: !i}));
+
+    let type = {}, regex = {};
+    for (let i = 0; i < paths.length; i++) {
+        type[paths[i].name] = paths[i].type || '';
+        regex[paths[i].name] = paths[i].regex || '';
+        let level1 = paths[i].path.split(']');
+        paths[i].level = {};
+        paths[i].double = paths[i].double || '';
+        for (let j = 0; j < paths.length; j++) {
+            if (paths[i].name === paths[j].name) continue;
+            if (paths[i].path === paths[j].path && !paths[i].main && !paths[j].double) {
+                paths[i].double = paths[j].name;
+                paths[j].double = '';
+            }
+            let level2 = paths[j].path.split(']');
+            for (let k = 0; k < level1.length; k++) {
+                if (level1[k] !== level2[k]) break;
+                paths[i].level[paths[j].name] = k + 1;
+            }
+        }
+    }
+
+    let iteration = [], finding = [];
+    for (let i = 0, l = keys.length; i < l; i++) {
+        let path = keys[i];
+        for (let j = 0; j < paths.length; j++) {
+            let {name, pattern, main, level, double} = paths[j];
             if (pattern.test(path)) {
-                format = {path, name};
+                let l = {};
+                let levels = Object.keys(level);
+                for (let i2 = 0, l2 = levels.length; i2 < l2; i2++) {
+                    let string = path.split(']').slice(0, level[levels[i2]]).join(']');
+                    if (/\[[0-9]*$/.test(string)) {string = string + ']';}
+                    l[levels[i2]] = string;
+                }
+                if (main) {
+                    iteration.push({[name]: path, ...l});
+                } else {
+                    finding.push({[name]: path});
+                    if (double) finding.push({[double]: path});
+                }
                 break;
             }
         }
-        return format;
-    }).filter(Boolean);
+    }
 
-    /*
-    Create array {name1: [ path1, path2, ... ], ...}
-     */
-
-    keys = keys.map(current => {
-        let level = {};
-        let patterns = {};
-        let {path, name} = current;
-        let coincidences = {[name]: [path]};
-        let path_array = path.split('');
-        for (let i = 0; i < keys.length; i++) {
-            let {path: pattern_path, name: pattern_name} = keys[i];
-            if (name === pattern_name) continue;
-            let pattern_array = pattern_path.split('');
-            let same = '';
-            for (let o = 0; o < pattern_array.length; o++) {
-                if (pattern_array[o] !== path_array[o]) break;
-                same += pattern_array[o];
+    for (let i = 0, l = iteration.length; i < l; i++) {
+        let item = iteration[i];
+        if (Object.keys(item).length <= 1) continue;
+        let resultObject = {};
+        let resultMulti = [];
+        let item_keys = Object.keys(item);
+        for (let i2 = 0, l2 = item_keys.length; i2 < l2; i2++) {
+            let key = item_keys[i2];
+            if (!i2) {
+                resultObject[key] = formatOut(dots[item[key]], type[key], regex[key]);
+                continue;
             }
-            if (!level[pattern_name] || level[pattern_name].length < same.length) {
-                level[pattern_name] = same;
-                patterns[pattern_name] = new RegExp('^' + same
-                    .replace(/\./g, '\\.')
-                    .replace(/\[/g, '\\['), '');
-            }
-        }
-        let pattern_array = Object.keys(patterns);
-        for (let i = 0; i < pattern_array.length; i++) {
-            let pattern_reg = patterns[pattern_array[i]];
-            let pattern_name = pattern_array[i];
-            for (let j = 0; j < keys.length; j++) {
-                let {path: key_path, name: key_name} = keys[j];
-                if (pattern_name !== key_name) continue;
-                if (!coincidences[pattern_name]) coincidences[pattern_name] = [];
-                if (pattern_reg.test(key_path)) {
-                    coincidences[pattern_name].push(key_path);
+            let same = item[key];
+            for (let i3 = 0, l3 = finding.length; i3 < l3; i3++) {
+                let path = finding[i3][key];
+                if (path && same === path.slice(0, same.length)) {
+                    if (typeof resultObject[key] === 'undefined') {
+                        resultObject[key] = formatOut(dots[path], type[key], regex[key]);
+                    } else {
+                        resultMulti.push({[key]: formatOut(dots[path], type[key], regex[key])});
+                    }
                 }
             }
         }
-        return coincidences;
-    });
-
-    /*
-    Create array {name1: value, name2: value ...}
-     */
-
-    keys = keys.map(d => {
-        const unique = Object.values(d)
-            .map(v => v.length)
-            .reduce((a, b) => a * b);
-        const innerRes = [...Array(unique)].map(_ => ({}));
-        const keys = Object.keys(d);
-        const keyInfo = [];
-        for (let i = keys.length - 1; i > -1; --i) {
-            keyInfo.unshift({
-                k: keys[i],
-                v: d[keys[i]],
-                switchRate: keyInfo.length
-                    ? keyInfo.map(ki => ki.v.length).reduce((a, b) => (a * b))
-                    : 1,
-            });
+        result.push(resultObject);
+        if (resultMulti.length) {
+            for (let m = 0, l = resultMulti.length; m < l; m++) {
+                result.push({...resultObject, ...resultMulti[m]});
+            }
         }
-        innerRes.forEach((o, i) => {
-            keyInfo.forEach(ki => {
-                let index = Math.max(0, Math.ceil(i / ki.switchRate));
-                while (index >= ki.v.length) { index -= ki.v.length; }
-                o[ki.k] = ki.v[index];
-            });
-        });
-        return innerRes;
-    }).flat(1);
+    }
 
-    /*
-    Delete duplicate entries in array {name1: value, name2: value ...}
-     */
+    if (time) console.timeEnd('TIME');
 
-    let unique = {};
-    keys.forEach(r => {
-        let ordered = {};
-        Object.keys(r).sort().forEach(key => ordered[key] = list[r[key]]);
-        unique[Object.values(ordered).join('')] = ordered;
-    });
-    Object.keys(unique).forEach(k => result.push(unique[k]));
+    if (group) {
+        let g = group.split('.');
+        return result.reduce((r, a) => {
+            switch (g.length) {
+                case 1:
+                    r[a[g[0]]] = r[a[g[0]]] || [];
+                    r[a[g[0]]].push(a);
+                    break;
+                case 2:
+                    r[a[g[0]]] = r[a[g[0]]] || {};
+                    r[a[g[0]]][a[g[1]]] = r[a[g[0]]][a[g[1]]] || [];
+                    r[a[g[0]]][a[g[1]]].push(a);
+                    break;
+                case 3:
+                    r[a[g[0]]] = r[a[g[0]]] || {};
+                    r[a[g[0]]][a[g[1]]] = r[a[g[0]]][a[g[1]]] || {};
+                    r[a[g[0]]][a[g[1]]][a[g[2]]] = r[a[g[0]]][a[g[1]]][a[g[2]]] || [];
+                    r[a[g[0]]][a[g[1]]][a[g[2]]].push(a);
+                    break;
+                case 4:
+                    r[a[g[0]]] = r[a[g[0]]] || {};
+                    r[a[g[0]]][a[g[1]]] = r[a[g[0]]][a[g[1]]] || {};
+                    r[a[g[0]]][a[g[1]]][a[g[2]]] = r[a[g[0]]][a[g[1]]][a[g[2]]] || {};
+                    r[a[g[0]]][a[g[1]]][a[g[2]]][a[g[3]]] = r[a[g[0]]][a[g[1]]][a[g[2]]][a[g[3]]] || [];
+                    r[a[g[0]]][a[g[1]]][a[g[2]]][a[g[3]]].push(a);
+                    break;
+            }
+            return r;
+        }, {});
+    }
 
     return result;
 };
 
 function parsePath(path) {
     if (typeof path === 'object') {
+        path.path = path.path.toString().trim();
         return {
-            path: path.path.toString().trim(),
-            name: path.name.toString().trim(),
-            pattern: new RegExp('^' + path.path.toString().trim()
+            path: path.path,
+            name: (path.name || path.path).toString().trim(),
+            type: path.type ? path.type.toString().trim() : '',
+            regex: path.regex ? path.regex : '',
+            pattern: new RegExp('^' + path.path
                 .replace(/\./g, '\\.')
                 .replace(/\[([0-9]+)]/g, '\\[[0-9]+\\]') + '$')
         };
     }
-    path = path.toString().trim();
+    let [p, n, t, r] = path.split('<>').map(p => p.trim());
     return {
-        path: path,
-        name: path,
-        pattern: new RegExp('^' + path.path
+        path: p || '',
+        name: n || p || '',
+        type: t || '',
+        regex: r ? new RegExp(r) : '',
+        pattern: new RegExp('^' + p
             .replace(/\./g, '\\.')
             .replace(/\[([0-9]+)]/g, '\\[[0-9]+\\]') + '$')
     };
+}
+
+function formatOut(value, type, regex) {
+    let result = value;
+    if (regex) {
+        let reg = ('' + result).match(regex);
+        if (reg && reg[1]) {result = reg[1];}
+    }
+    if (type === 'number') {
+        result = parseInt(('' + result).replace(/[^0-9]/g, ''));
+    } else if (type === 'boolean') {
+        result = !!result;
+    } else if (type === 'string') {
+        result = ('' + result);
+    }
+    return result;
 }
