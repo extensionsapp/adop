@@ -15,6 +15,8 @@ module.exports = (json, paths, group, time = false) => {
         return result;
     }
 
+    let many = paths.length > 1;
+
     if (time) console.time('TIME');
 
     const dots = dot.convert(json);
@@ -77,7 +79,7 @@ module.exports = (json, paths, group, time = false) => {
 
     for (let i = 0, l = iteration.length; i < l; i++) {
         let item = iteration[i];
-        if (Object.keys(item).length <= 1) continue;
+        if (Object.keys(item).length <= 1 && many) continue;
         let resultObject = {};
         let resultMulti = [];
         let item_keys = Object.keys(item);

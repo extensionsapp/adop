@@ -1,6 +1,6 @@
 {
   "name": "adop",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "All dot-notation object path from multiple items",
   "main": "index.js",
   "scripts": {
