@@ -32,10 +32,11 @@ module.exports = (json, paths, group, time = false) => {
         .reverse()
         .map((p, i) => ({...p, main: !i}));
 
-    let type = {}, regex = {};
+    let type = {}, regex = {}, format = {};
     for (let i = 0; i < paths.length; i++) {
         type[paths[i].name] = paths[i].type || '';
         regex[paths[i].name] = paths[i].regex || '';
+        format[paths[i].name] = paths[i].format || '';
         let level1 = paths[i].path.split(']');
         paths[i].level = {};
         paths[i].double = paths[i].double || '';
@@ -86,7 +87,7 @@ module.exports = (json, paths, group, time = false) => {
         for (let i2 = 0, l2 = item_keys.length; i2 < l2; i2++) {
             let key = item_keys[i2];
             if (!i2) {
-                resultObject[key] = formatOut(dots[item[key]], type[key], regex[key]);
+                resultObject[key] = formatOut(dots[item[key]], type[key], regex[key], format[key]);
                 continue;
             }
             let same = item[key];
@@ -94,9 +95,9 @@ module.exports = (json, paths, group, time = false) => {
                 let path = finding[i3][key];
                 if (path && same === path.slice(0, same.length)) {
                     if (typeof resultObject[key] === 'undefined') {
-                        resultObject[key] = formatOut(dots[path], type[key], regex[key]);
+                        resultObject[key] = formatOut(dots[path], type[key], regex[key], format[key]);
                     } else {
-                        resultMulti.push({[key]: formatOut(dots[path], type[key], regex[key])});
+                        resultMulti.push({[key]: formatOut(dots[path], type[key], regex[key], format[key])});
                     }
                 }
             }
@@ -147,7 +148,7 @@ module.exports = (json, paths, group, time = false) => {
 
 function parsePath(path) {
     if (typeof path === 'object') {
-        let [p, n, t, r] = path.path.split('<>').map(p => p.trim());
+        let [p, n, t, r, f] = path.path.split('<>').map(p => p.trim());
         p = p
             .replace(/^([0-9]*)\./g, '[$1].')
             .replace(/\.([0-9]*)$/g, '[$1]')
@@ -157,12 +158,13 @@ function parsePath(path) {
             name: (n || path.name || p || '').toString().trim(),
             type: (t || path.type || '').toString().trim(),
             regex: (r || path.regex || ''),
+            format: (f || path.format || ''),
             pattern: new RegExp('^' + p
                 .replace(/\./g, '\\.')
                 .replace(/\[([0-9]+)]/g, '\\[[0-9]+\\]') + '$')
         };
     }
-    let [p, n, t, r] = path.split('<>').map(p => p.trim());
+    let [p, n, t, r, f] = path.split('<>').map(p => p.trim());
     p = p
         .replace(/^([0-9]*)\./g, '[$1].')
         .replace(/\.([0-9]*)$/g, '[$1]')
@@ -172,13 +174,14 @@ function parsePath(path) {
         name: (n || p || ''),
         type: t || '',
         regex: r ? new RegExp(r) : '',
+        format: (f || ''),
         pattern: new RegExp('^' + p
             .replace(/\./g, '\\.')
             .replace(/\[([0-9]+)]/g, '\\[[0-9]+\\]') + '$')
     };
 }
 
-function formatOut(value, type, regex) {
+function formatOut(value, type, regex, format) {
     let result = value;
     if (regex) {
         let reg = ('' + result).match(regex);
@@ -190,6 +193,9 @@ function formatOut(value, type, regex) {
         result = !!result;
     } else if (type === 'string') {
         result = ('' + result);
+    }
+    if (typeof format === 'string' && format !== '' && result !== '') {
+        result = format.replace(/_VALUE_/ig, result).trim();
     }
     return result;
 }

@@ -96,13 +96,13 @@ let obj = [
 
 let str = '' +
     'results[0].id ~' +
-    'results.0.seasons.0.season <> season ~' +
+    'results.0.seasons.0.season <> season <> <> <> Season _VALUE_ ~' +
     'results[0].seasons[0].episodes.0.SxEx' +
     '<> episode ' +
     '<> number ' +
     '<> S[0-9]{1,3}E([0-9]{1,3})';
 
-// From string params: path <> name <> type <> regex
+// From string params: path <> name <> type <> regex <> constructor
 console.log(adop(json, str));
 
 // From object params

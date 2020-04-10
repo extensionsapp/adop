@@ -101,25 +101,29 @@ let obj = [
 
 let str = '' +
     'results[0].id ~' +
-    'results[0].seasons[0].season <> season ~' +
+    'results[0].seasons[0].season' +
+    '<> season' +
+    '<>' +
+    '<>' +
+    '<> Season _VALUE_ ~' +
     'results[0].seasons[0].episodes[0].SxEx' +
     '<> episode ' +
     '<> number ' +
     '<> S[0-9]{1,3}E([0-9]{1,3})';
 
-// From string params: path <> name <> type <> regex
+// From string params: path <> name <> type <> regex <> constructor
 console.log(adop(json, str));
 
 /*
     [
-      { episode: 1, season: 1, 'results[0].id': 1 },
-      { episode: 2, season: 1, 'results[0].id': 1 },
-      { episode: 1, season: 2, 'results[0].id': 1 },
-      { episode: 1, season: 3, 'results[0].id': 1 },
-      { episode: 2, season: 3, 'results[0].id': 1 },
-      { episode: 3, season: 3, 'results[0].id': 1 },
-      { episode: 1, season: 1, 'results[0].id': 2 },
-      { episode: 2, season: 1, 'results[0].id': 2 }
+      { episode: 1, season: 'Season 1', 'results[0].id': 1 },
+      { episode: 2, season: 'Season 1', 'results[0].id': 1 },
+      { episode: 1, season: 'Season 2', 'results[0].id': 1 },
+      { episode: 1, season: 'Season 3', 'results[0].id': 1 },
+      { episode: 2, season: 'Season 3', 'results[0].id': 1 },
+      { episode: 3, season: 'Season 3', 'results[0].id': 1 },
+      { episode: 1, season: 'Season 1', 'results[0].id': 2 },
+      { episode: 2, season: 'Season 1', 'results[0].id': 2 }
     ]
 */
 
